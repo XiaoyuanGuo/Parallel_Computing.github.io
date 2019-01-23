@@ -1,0 +1,5 @@
+http://www.parallel-algorithms-book.com
+
+https://www.cs.cmu.edu/~15210/pasl.html#_parallel_fibonacci
+
+http://srmcse.weebly.com/uploads/8/9/0/9/8909020/introduction_to_parallel_computing_second_edition-ananth_grama..pdf
