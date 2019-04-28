@@ -77,8 +77,7 @@ int main(int argc, char* argv[]){
 		printf("done\n");
 	}
 	MPI_Bcast(boundaries, size, MPI_INT, 0 , MPI_COMM_WORLD);
-	printf("rank %d has boundaries %d\n",rank, boundaries[rank] );
-
+	
 	//each processor reads its chuck
 	map<int, node> nodes = parse_file(to_string(rank)+".txt");
 
@@ -87,32 +86,20 @@ int main(int argc, char* argv[]){
 	
 	//compute quad in self 
 	result = ComputeIntersect(nodes,nodes,result);
-	//wait for everyone finishing computing
 	
-	printf("rank %d has found %d results \n", rank, result.size());
+	//wait for everyone finishing computing
 	MPI_Barrier(MPI_COMM_WORLD);
-	// if(rank == 0){
-	// 	sendNodes_buffer  = seriealizeNodes(nodes);
-	// 	buffer_size = (int)(sendNodes_buffer [0] + 1);		
-	// }
-	// MPI_Bcast(sendNodes_buffer, 5000, MPI_INT, 0, MPI_COMM_WORLD);
-	// printf("rank %d sendNodes_buffer size is %d\n",rank, sendNodes_buffer[0]+1 );
 
 	for(int t = 0; t < size-1; t++){
 		
 		if(rank == t){
-
-			printf("in rank %d == %d\n",rank, t);
 			sendNodes_buffer  = seriealizeNodes(nodes);
 			buffer_size = sendNodes_buffer[0]+1;
-			printf("sendNodes_buffer %d is ready\n",buffer_size);
 			for(int des = t+1; des < size; des++){
-				printf("rank %d broadcast %d data done!\n",rank, buffer_size );
 				MPI_Send(&buffer_size, 1, MPI_INT, des, 0, MPI_COMM_WORLD);
 				MPI_Send(sendNodes_buffer, buffer_size, MPI_INT, des, 2, MPI_COMM_WORLD);
 			}
 		}
-		printf("out rank == t\n");
 		
 		MPI_Barrier(MPI_COMM_WORLD);
 
@@ -122,35 +109,36 @@ int main(int argc, char* argv[]){
 			sendNodes_buffer = (int*)malloc(sizeof(int)*buffer_size);
 			MPI_Recv(sendNodes_buffer,buffer_size, MPI_INT, t, 2, MPI_COMM_WORLD, &status);
 
-			printf("rank %d sendNodes_buffer size is %d\n",rank, sendNodes_buffer[0]+1 );
+			// printf("rank %d sendNodes_buffer size is %d\n",rank, sendNodes_buffer[0]+1 );
 			map<int, node> nodes2 =  deseriealizeNodes(sendNodes_buffer);
-			printf("rank %d uses broadcast data to compute!\n",rank);
+			// printf("rank %d uses broadcast data to compute!\n",rank);
 			result = ComputeIntersect(nodes,nodes2,result);
-			printf("rank %d uses broadcast data to get %d results!\n",rank, result.size());
+			// printf("rank %d uses broadcast data to get %d results!\n",rank, result.size());
 			// nodes2.clear();
 			free(sendNodes_buffer);
 			buffer_size = 0;
 			
 		}
-		printf("I stop here2\n");
 		MPI_Barrier(MPI_COMM_WORLD);
 
 	}//end for
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	
-	printf("Send results to 0...\n");
+	
     if(rank != 0){
     	if(request != MPI_REQUEST_NULL){
 			MPI_Wait(&request, &status);
 			free(send_buffer);
 		}
-
+		printf("rank %d sends results to rank 0...\n",rank);
     	send_buffer = seriealizeQuad(result);
 		int buffer_size = (int)(result.size()*4);
 		//Begins a nonblocking send
 		MPI_Isend(send_buffer,buffer_size,MPI_INT,0, 1, MPI_COMM_WORLD,&request);
 	}
+
+	MPI_Barrier(MPI_COMM_WORLD);
 
 	if(rank == 0){
 		int flag = 1;
@@ -188,7 +176,7 @@ if(rank == 0){
 		}
 		cout<<"]\n";
 	}
-	printf("global_sum: %d\n", result.size());
+	printf("Find %d quadrilaterals\n", result.size());
 }
 
 	
@@ -429,7 +417,6 @@ set <vector<int> > ComputeIntersect(map<int, node> nodes1,map<int, node> nodes2,
 	for (auto n = nodes1.begin(); n != nodes1.end(); n++){
 		for (auto m = nodes2.begin(); m!= nodes2.end(); m++){
 			if(n->second.id != m->second.id){
-				// printf("<%d %d>\n", n->second.id, m->second.id);
 				vector<int> temp = intersectionCount2(n->second.neighbors,m->second.neighbors);
 				if (temp.size() <= 1){
 					temp.clear();
