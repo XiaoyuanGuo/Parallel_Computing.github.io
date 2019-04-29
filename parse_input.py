@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 # this is for quadrilateral, data preprocessing
+# usage: python parse_input.py file.txt
 def main(filename):
     n = 0
     with open(filename) as f:
